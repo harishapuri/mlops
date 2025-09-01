@@ -1,0 +1,29 @@
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'gcr.io/udemy-mlops/bike_share_model_inference', '.']
+
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push', 'gcr.io/udemy-mlops/bike_share_model_inference']
+
+- name: 'gcr.io/udemy-mlops/bike_share_model_inference'
+  entrypoint: 'bash'
+  args:
+   - '-c'
+   - |
+      python main.py & python -m pytest
+  
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: gcloud
+  args:
+   - 'run'
+   - 'deploy'
+   - 'bikeshare-model-inference'
+   - '--image'
+   - 'gcr.io/udemy-mlops/bike_share_model_inference'
+   - '--region'
+   - 'us-central1'
+   - '--allow-unauthenticated'
+images:
+- 'gcr.io/udemy-mlops/bike_share_model_inference'
+options:
+  logging: CLOUD_LOGGING_ONLY
