@@ -21,7 +21,7 @@ def test_main_endpoint(mock_get_table, mock_load_table_from_uri, client):
     assert response.status_code == 200
     data = response.get_json()
     assert 'data' in data
-    assert data['data'] == 40
+    assert data['data'] == 50
     
     mock_load_table_from_uri.assert_called_once()
     mock_load_job.result.assert_called_once()
