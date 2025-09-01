@@ -1,28 +1,41 @@
-from google.cloud import bigquery
-from flask import Flask
-from flask import request
-import os 
+import pandas as pd
+from flask import Flask, request, jsonify
+import joblib
+import os
+from google.cloud import storage
 
 app = Flask(__name__)
-client = bigquery.Client()
- 
-@app.route('/')
-def main(big_query_client=client):
-    table_id = "udemy-mlops-395416.test_schema.us_states"
-    job_config = bigquery.LoadJobConfig(
-        write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE,
-        source_format=bigquery.SourceFormat.CSV,
-        skip_leading_rows=1,
-    )
-    uri = "gs://sidd-ml-ops/us-states.csv"
-    load_job = big_query_client.load_table_from_uri(
-        uri, table_id, job_config=job_config
-    )
+model = None
 
-    load_job.result()  
+def load_model():
+    model = joblib.load("model.joblib")
+    return model
 
-    destination_table = big_query_client.get_table(table_id)
-    return {"data": destination_table.num_rows}
+def load_model_cloud():
+    storage_client = storage.Client()
+    bucket_name = "sid-kubeflow-v1"
+    bucket = storage_client.get_bucket(bucket_name)
+    blob = bucket.blob("bikeshare-model/artifact/model.joblib")
+    blob.download_to_filename("model.joblib")
+    model = joblib.load("model.joblib")
+    return model
 
-if __name__ == "__main__":
+@app.route('/predict', methods=['POST'])
+def predict():
+    # Uncomment this while running from local system 
+    # model = load_model()
+    
+    # Uncomment this while running from cloud
+    model = load_model_cloud()
+    try : 
+        input_json = request.get_json()
+        input_df = pd.DataFrame(input_json, index=[0])
+        y_predictions = model.predict(input_df)
+        response = {'predictions': y_predictions.tolist()}
+        return jsonify(response), 200
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+if __name__ == '__main__':
     app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 5052)))
