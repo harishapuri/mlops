@@ -4,7 +4,7 @@ steps:
 
 - name: 'gcr.io/cloud-builders/docker'
   args: ['push', 'gcr.io/udemy-mlops-395416/demo-flask-app:$COMMIT_SHA']
-
+ 
 - name: 'gcr.io/udemy-mlops-395416/demo-flask-app:$COMMIT_SHA'
   entrypoint: 'bash'
   args:
